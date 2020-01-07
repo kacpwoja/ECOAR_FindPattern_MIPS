@@ -115,9 +115,11 @@ FindPattern:
 					# $t8 -> mask from GetPixel
 					and	$t7, $t7, $t8
 					
-					beqz	$t7, FPSKIPZERO
-					beqz	$t6, FPSKIPZERO
-					bne	$t6, $t7, FPbreak_l
+					beqz	$t7, case2
+					beqz	$t6, FPbreak_l
+					b	FPSKIPZERO
+					case2:
+					bnez	$t6, FPbreak_l
 					FPSKIPZERO:
 
 					addiu	$t3, $t3, 1
@@ -133,12 +135,13 @@ FindPattern:
 			sw	$t1, ($s0)
 			sw	$t0, 4($s0)
 			addiu	$s0, $s0, 8
+			bgeu	$v1, 100, finnn
 			FPskip_found:
 			addiu	$t1, $t1, 1
 			bltu	$t1, $s5, FPfor_j	
 		addiu	$t0, $t0, 1
 		bltu	$t0, $s4, FPfor_i
-		
+	finnn:
 #	Epilogue
 	lw	$s0, 0($sp)
 	lw	$s1, 8($sp)

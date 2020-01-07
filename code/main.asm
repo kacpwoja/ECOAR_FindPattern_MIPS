@@ -23,8 +23,6 @@ pttrn:	.word	0x40, 0x3d, 0x3d, 0x3d, 0x41, 0x7d, 0x7d, 0x43
 #
 #
 
-nline:	.asciiz	"\n"
-
 	.text
 	.globl	main
 main:
@@ -97,8 +95,8 @@ main:
 	li	$v0, 1
 	move	$a0, $s1
 	syscall
-	li	$v0, 4
-	la	$a0, nline
+	li	$v0, 0xB
+	la	$a0, 0xA
 	syscall
 	beqz	$s1, SkipPoints
 	

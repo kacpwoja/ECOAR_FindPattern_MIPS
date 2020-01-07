@@ -1,5 +1,4 @@
 	.data
-nline:	.asciiz	"\n"
 	.text
 	.globl	PrintPoint
 # void PrintPoint(Point* pnt)
@@ -31,8 +30,8 @@ PrintPoint:
 	li	$a0, ')'
 	syscall
 	
-	li	$v0, 4
-	la	$a0, nline
+	li	$v0, 0xB
+	la	$a0, 0xA
 	syscall
 	
 	jr	$ra

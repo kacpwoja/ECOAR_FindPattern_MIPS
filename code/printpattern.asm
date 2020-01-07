@@ -1,5 +1,4 @@
 	.data
-nline:	.asciiz	"\n"
 	.text
 	.globl	PrintPattern
 # void PrintPattern(int* pattern, int p_size)
@@ -55,8 +54,8 @@ PrintPout_back:
 	srl	$t1, $t1, 1
 	bnez	$t1, PrintPfor_mask
 #	iterate for i
-	la	$a0, nline
-	li	$v0, 4
+	la	$a0, 0xA
+	li	$v0, 0xB
 	syscall
 	addiu	$s0, $s0, 4
 	addiu	$t0, $t0, 1
