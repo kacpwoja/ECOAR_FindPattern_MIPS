@@ -11,6 +11,16 @@
 # $a3	-> Point* pResult - pointer to buffer to return to
 FindPattern:
 	# TODO: Implement
+#	Prologue
+	# Init return values
+	move	$v0, $a3
+	move	$t7, $a3
+	li	$v1, 1
+	
+	li	$t0, 123
+	sw	$t0, ($t7)
+	li	$t0, 456
+	sw	$t0, 4($t7)
 
 	# return fun
 	jr	$ra
