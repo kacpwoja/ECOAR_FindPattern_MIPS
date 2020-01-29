@@ -26,7 +26,6 @@ pttrn:	.word	0x40, 0x3d, 0x3d, 0x3d, 0x41, 0x7d, 0x7d, 0x43
 	.text
 	.globl	main
 main:
-#	Init etc - TODO
 	
 #	Print pattern
 	la	$a0, pttrn
@@ -42,13 +41,13 @@ main:
 	syscall
 	
 	bltz	$v0, finish
-	move	$s0, $v0 #file descriptor
+	move	$s0, $v0 # file descriptor
 	
 	# Read BMP Header
 	li	$v0, 14
 	move	$a0, $s0
 	la	$a1, bmphdr
-	li	$a2, 54
+	li	$a2, 62
 	syscall
 	
 	# Get width, height and buffer size	
@@ -58,17 +57,14 @@ main:
 	sw	$s1, height
 	#lw	$s1, bmphdr+34 # this doesnt work, returns 0
 	#sw	$s1, fbsize
-	# calculate bytes per line
-	lw	$t0, width
-	addiu	$t0, $t0, 7
-	divu	$t0, $t0, 8
-	addiu	$t0, $t0, 3
-	divu	$t0, $t0, 4
-	mul	$t0, $t0, 4
-	# calculate total bytes and store them
-	lw	$t1, height
-	mul	$t0, $t0, $t1
-	sw	$t0, fbsize
+	# Calculate size manually
+	lw	$s1, width
+	lw	$s2, height
+	addiu	$s1, $s1, 31
+	srl	$s1, $s1, 5
+	sll	$s1, $s1, 2
+	mul	$s3, $s1, $s2
+	sw	$s3, fbsize
 	
 	li	$v0, 14
 	move	$a0, $s0
@@ -105,7 +101,7 @@ main:
 	move	$t1, $s1
 PointLoop:
 	move	$a0, $t0
-	jal	PrintPoint
+	#jal	PrintPoint
 	addiu	$t0, $t0, 8
 	addiu	$t1, $t1, -1
 	bnez	$t1, PointLoop
@@ -113,30 +109,30 @@ PointLoop:
 SkipPoints:
 	
 #	Save BMP
-#	li	$v0, 13
-#	la	$a0, imgout
-#	li	$a1, 1
-#	li	$a2, 0
-#	syscall
+	li	$v0, 13
+	la	$a0, imgout
+	li	$a1, 1
+	li	$a2, 0
+	syscall
 	
-#	bltz	$v0, finish
-#	move	$s0, $v0 #file descriptor
+	bltz	$v0, finish
+	move	$s0, $v0 #file descriptor
 	
-#	li	$v0, 15
-#	move	$a0, $s0
-#	la	$a1, bmphdr
-#	li	$a2, 54
-#	syscall
+	li	$v0, 15
+	move	$a0, $s0
+	la	$a1, bmphdr
+	li	$a2, 54
+	syscall
 	
-#	li	$v0, 15
-#	move	$a0, $s0
-#	la	$a1, fbuf
-#	lw	$a2, fbsize
-#	syscall
+	li	$v0, 15
+	move	$a0, $s0
+	la	$a1, fbuf
+	lw	$a2, fbsize
+	syscall
 	
-#	li	$v0, 16
-#	move	$a0, $s0
-#	syscall
+	li	$v0, 16
+	move	$a0, $s0
+	syscall
 
 #	End of program
 finish:
