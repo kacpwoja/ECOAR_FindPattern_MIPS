@@ -1,16 +1,11 @@
 	.data
 xxxxx:	.space	2
-bmphdr:	.space	56
+bmphdr:	.space	54
 
 imgin:	.asciiz	"src2.bmp"
 
-imgInfo:
-width:	.word	0
-height:	.word	0
-pImg:	.word	0
-fbsize:	.word	0
-
-# Buffer for storing result (100 points = 100x2 words = 400)
+zzzzz:	.space	3
+# Buffer for storing result (100 points = 100x2 words = 800)
 p_res:	.space	800
 
 # Pattern.
@@ -21,6 +16,11 @@ pttrn:	.word	0x40, 0x3d, 0x3d, 0x3d, 0x41, 0x7d, 0x7d, 0x43
 # other letter
 #
 #
+imgInfo:
+width:	.word	0
+height:	.word	0
+pImg:	.word	0
+fbsize:	.word	0
 
 	.text
 	.globl	main
