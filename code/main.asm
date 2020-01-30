@@ -11,7 +11,7 @@ pImg:	.word	0
 fbsize:	.word	0
 
 # Buffer for storing result (100 points = 100x2 words = 400)
-p_res:	.space	400
+p_res:	.space	800
 
 # Pattern.
 # Size is 0xHHHHVVVV, where H is horizontal size, V is vertical size
@@ -93,7 +93,6 @@ height_negative:
 	not	$s2, $s2
 	addiu	$s2, $s2, 1
 height_positive:
-	sw	$s3, pImg
 	
 #	Find the pattern
 	la	$a0, imgInfo
