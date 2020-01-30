@@ -61,15 +61,13 @@ FindPattern:
 	addiu	$s4, $s4, 1
 	
 	lb	$t6, ($a2)	# $t6 holds pattern row
-	#maskFF
-	and	$t6, $t6, 0xFF
 	or	$t6, $t6, 1
 	sll	$t6, $t6, 8
 	xor	$t7, $t7, $t7	# pattern row counter
 
 # Algorithm begins
 	xor	$t1, $t1, $t1	# row counter
-	move	$s6, $t0	# line save s6 -> s2
+	move	$s6, $t0	# line save s6
 	add	$s6, $s6, $s5	# move to "previous" row to restore at the beginning of loop	
 	
 FP_row:
@@ -80,8 +78,6 @@ FP_row:
 	addiu	$t1, $t1, 1
 	xor	$t2, $t2, $t2	# column counter
 	lb	$t3, ($t0)	# $t3 holds current two bytes
-	#maskFF
-	and	$t3, $t3, 0xFF
 	sll	$t3, $t3, 8	# shift to fit 2 bytes in register
 	subiu	$t0, $t0, 1	# go back one byte to return at the beginning of loop
 
@@ -90,8 +86,6 @@ FP_column:
 	# Check for column end
 	bge	$t2, $s3, FP_row
 	lb	$t4, 1($t0)	# load second byte
-	#maskFF
-	and	$t4, $t4, 0xFF
 	or	$t3, $t3, $t4	# now two bytes in $t3
 	xor	$t8, $t8, $t8	# byte shift
 	
@@ -139,8 +133,6 @@ FP_found_row:
 	mul	$t5, $t7, 4
 	addu	$t5, $t5, $a2
 	lb	$t6, ($t5)
-	#maskFF
-	and	$t6, $t6, 0xFF
 	or	$t6, $t6, 1
 	sll	$t6, $t6, 8
 	or	$t4, $t4, $t6
@@ -152,8 +144,6 @@ FP_byte_back:
 	# Failed attempt, shift back
 	# Load pattern row 1
 	lb	$t6, ($a2)
-	#maskFF
-	and	$t6, $t6, 0xFF
 	or	$t6, $t6, 1
 	sll	$t6, $t6, 8
 	# Reset image pointer
@@ -171,6 +161,7 @@ FP_byte_back:
 	b	FP_byte
 
 FP_found_pattern:
+	# Save found pattern 
 	subiu	$t7, $t7, 1			
 	addiu	$v1, $v1, 1
 	sw	$t2, ($s0)
