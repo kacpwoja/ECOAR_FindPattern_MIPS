@@ -1,17 +1,16 @@
 	.data
 xxxxx:	.space	2
-bmphdr:	.space	62
+bmphdr:	.space	56
 
 imgin:	.asciiz	"src2.bmp"
-imgout:	.asciiz	"out.bmp"
 
 imgInfo:
-width:	.word	-1
-height:	.word	-1
-fbsize:	.word	-1
-fbuf:	.space	400000
+width:	.word	0
+height:	.word	0
+pImg:	.word	0
+fbsize:	.word	0
 
-# Buffer for storing result (100 points = 100x2 words = 400
+# Buffer for storing result (100 points = 100x2 words = 400)
 p_res:	.space	400
 
 # Pattern.
@@ -53,30 +52,50 @@ main:
 	# Get width, height and buffer size	
 	lw	$s1, bmphdr+18
 	sw	$s1, width
-	lw	$s1, bmphdr+22
-	sw	$s1, height
-	#lw	$s1, bmphdr+34 # this doesnt work, returns 0
-	#sw	$s1, fbsize
+	lw	$s2, bmphdr+22
+	sw	$s2, height
+	#lw	$s3, bmphdr+34 # this doesnt work, returns 0
+	#sw	$s3, fbsize
 	# Calculate size manually
-	lw	$s1, width
-	lw	$s2, height
 	addiu	$s1, $s1, 31
 	srl	$s1, $s1, 5
-	sll	$s1, $s1, 2
+	sll	$s1, $s1, 2 # bytes in line
 	mul	$s3, $s1, $s2
 	sw	$s3, fbsize
 	
+	# Allocate heap
+	li	$v0, 9
+	move	$a0, $s3
+	syscall
+	move	$s4, $v0
+	sw	$s4, pImg
+	
+	# Load image into buffer
 	li	$v0, 14
 	move	$a0, $s0
-	la	$a1, fbuf
-	lw	$a2, fbsize
+	move	$a1, $s4
+	move	$a2, $s3
 	syscall
 	
+	# Close file
 	li	$v0, 16
 	move	$a0, $s0
 	syscall
 	
-#	Find the pattern - TODO
+	# Height processing
+	blez	$s2, height_negative
+	subiu	$s5, $s2, 1
+	mul	$s5, $s6, $s5 # total bytes
+	add	$s4, $s4, $s5 # move pointer (it's backwards)
+	b	height_positive	
+height_negative:
+	# Two's complement integer negation
+	not	$s2, $s2
+	addiu	$s2, $s2, 1
+height_positive:
+	sw	$s3, pImg
+	
+#	Find the pattern
 	la	$a0, imgInfo
 	lw	$a1, p_size
 	la	$a2, pttrn
@@ -86,7 +105,7 @@ main:
 	move	$s0, $v0
 	move	$s1, $v1
 
-#	Print found instances and invert them - TODO
+#	Print found instances and invert them
 	# no. of found instances
 	li	$v0, 1
 	move	$a0, $s1
@@ -107,32 +126,6 @@ PointLoop:
 	bnez	$t1, PointLoop
 	
 SkipPoints:
-	
-#	Save BMP
-	li	$v0, 13
-	la	$a0, imgout
-	li	$a1, 1
-	li	$a2, 0
-	syscall
-	
-	bltz	$v0, finish
-	move	$s0, $v0 #file descriptor
-	
-	li	$v0, 15
-	move	$a0, $s0
-	la	$a1, bmphdr
-	li	$a2, 54
-	syscall
-	
-	li	$v0, 15
-	move	$a0, $s0
-	la	$a1, fbuf
-	lw	$a2, fbsize
-	syscall
-	
-	li	$v0, 16
-	move	$a0, $s0
-	syscall
 
 #	End of program
 finish:
