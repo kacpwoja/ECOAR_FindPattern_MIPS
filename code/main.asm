@@ -31,7 +31,59 @@ main:
 	la	$t0, p_size
 	lw	$a1, ($t0)
 	#jal	PrintPattern
-
+	
+#	Read BMP
+	li	$v0, 13
+	la	$a0, imgin
+	li	$a1, 0
+	li	$a2, 0
+	syscall
+	
+	bltz	$v0, finish
+	move	$s0, $v0 # file descriptor
+	
+	# Read BMP Header
+	li	$v0, 14
+	move	$a0, $s0
+	la	$a1, bmphdr
+	li	$a2, 62
+	syscall
+	
+	# Get width, height and buffer size	
+	lw	$s1, bmphdr+18
+	lw	$s2, bmphdr+22
+	#lw	$s3, bmphdr+34 # this doesnt work, returns 0
+	#sw	$s3, fbsize
+	# Calculate size manually
+	addiu	$s6, $s1, 31
+	srl	$s6, $s6, 5
+	sll	$s6, $s6, 2 # bytes in line
+	mul	$s3, $s6, $s2
+	
+	# Allocate heap
+	li	$v0, 9
+	move	$a0, $s3
+	syscall
+	move	$s4, $v0
+	
+	# Load image into buffer
+	li	$v0, 14
+	move	$a0, $s0
+	move	$a1, $s4
+	move	$a2, $s3
+	syscall
+	
+	# Height processing
+	blez	$s2, height_negative
+	subiu	$s5, $s2, 1
+	mul	$s5, $s6, $s5 # total bytes
+	add	$s4, $s4, $s5 # move pointer (it's backwards)
+	b	height_positive	
+height_negative:
+	# Two's complement integer negation
+	not	$s2, $s2
+	addiu	$s2, $s2, 1
+height_positive:
 	sw	$s1, width
 	sw	$s2, height
 	sw	$s3, fbsize
