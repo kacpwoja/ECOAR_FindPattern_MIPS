@@ -10,129 +10,153 @@
 # $a2	-> int* ptrn - the pattern to search for
 # $a3	-> Point* pResult - pointer to buffer to return to
 #
-#	$s0 -> last saved point
-#	$s1 -> pattern horizontal size	(s2)
-#	$s2 -> pattern vertical size	(s3)
-#	$s3 -> img width		(s0)
-#	$s4 -> img height		(s1)
-#	$s5 -> bytes in line		(s4)
-#	$t0 -> image pointer
+#	s0 -> last saved point
+#	s1 -> pattern horizontal size
+#	s2 -> pattern vertical size
+#	s3 -> img width
+#	s4 -> img height
+#	s5 -> bytes in line
+#	t0 -> image pointer
 #
-#	$v0				($t3)
+#	v0				($t3)
 FindPattern:
-lw	$s0, ($a0)		#s0 = width
-addiu 	$a0, $a0, +4		
-lw	$s1, ($a0)		#s1 = height
-addiu 	$a0, $a0, +4		
-lw	$t0, ($a0)		#t0 = pointer to image
-srl	$s2, $a1, 16		#s2 = pattern width
-andi	$s3, $a1, 0xFFFF	#s3 = pattern height
-addiu 	$s4, $s0, 31		
-srl	$s4, $s4, 5
-sll	$s4, $s4, 2		#s4 = bytes in line
-move	$s6, $a2		#s6 = pointer to pattern
-lb	$t6, ($s6)		#t6 = 1st line of pattern
-and	$t6, $t6, 0x000000FF
-or	$t6, $t6, 0x00000001
-sll	$t6, $t6, 8
-addiu 	$t7, $zero, 0		#t7 = counter for pattern lines found
-addu 	$t3, $zero, 0		#t3 = counter of occurences of pattern
+#	Prologue
+	addiu	$sp, $sp, -56
+	sw	$s0, 0($sp)
+	sw	$s1, 8($sp)
+	sw	$s2, 16($sp)
+	sw	$s3, 24($sp)
+	sw	$s4, 32($sp)
+	sw	$s5, 40($sp)
+	sw	$s6, 48($sp)
+	
+# Initialization
+	# Init return values
+	move	$v0, $a3
+	move	$s0, $a3
+	xor	$v1, $v1, $v1
 
+	# Pattern size
+	srl	$s1, $a1, 16
+	andi	$s2, $a1, 0xFFFF
+	
+	# Img params
+	lw	$s3, ($a0)
+	lw	$s4, 4($a0)
+	lw	$t0, 8($a0)
 
-bgt	$s2, $s0, return	#checking if width is not to small
-bgt	$s3, $s1, return	#same for height
+	# Bytes in each line
+	addiu	$s5, $s3, 31
+	srl	$s5, $s5, 5
+	sll	$s5, $s5, 2
+	
+	# If dimensions can't fit pattern, end
+	bgt	$s1, $s3, FP_end
+	bgt	$s2, $s4, FP_end
+	
+	# Substracting pattern size from image size (protection from out of bounds)
+	sub	$s3, $s3, $s1
+	addiu	$s3, $s3, 1
+	sub	$s4, $s4, $s2
+	addiu	$s4, $s4, 1
+	
+	lb	$t6, ($a2)	# $t6 holds pattern row
+	#maskFF
+	and	$t6, $t6, 0xFF
+	or	$t6, $t6, 1
+	sll	$t6, $t6, 8
+	xor	$t7, $t7, $t7	# pattern row counter
 
-sub	$s0, $s0, $s2		#substracting pattern size from img size
-addiu	$s0, $s0, 1	
-sub	$s1, $s1, $s3
-addiu	$s1, $s1, 1
+# Algorithm begins
+	xor	$t1, $t1, $t1	# row counter
+	move	$s6, $t0	# line save s6 -> s2
+	add	$s6, $s6, $s5	# move to "previous" row to restore at the beginning of loop	
+	
+FP_row:
+	sub	$s6, $s6, $s5
+	move	$t0, $s6
+	# Check for image end
+	bge	$t1, $s4, FP_end
+	addiu	$t1, $t1, 1
+	xor	$t2, $t2, $t2	# column counter
+	lb	$t3, ($t0)	# $t3 holds current two bytes
+	#maskFF
+	and	$t3, $t3, 0xFF
+	sll	$t3, $t3, 8	# shift to fit 2 bytes in register
+	subiu	$t0, $t0, 1	# go back one byte to return at the beginning of loop
 
-start:
-addiu 	$t1, $zero, 0		#t1 = counter of rows
-move	$s2, $t0		#storing address of line
+FP_column:
+	addiu	$t0, $t0, 1
+	# Check for column end
+	bge	$t2, $s3, FP_row
+	lb	$t4, 1($t0)	# load second byte
+	#maskFF
+	and	$t4, $t4, 0xFF
+	or	$t3, $t3, $t4	# now two bytes in $t3
+	xor	$t8, $t8, $t8	# byte shift
+	
+FP_byte:
+	# Check exit conditions
+	bge	$t8, 8, FP_column
+	bge	$t2, $s3, FP_column
+	# Pattern check
+	or	$t4, $t3, $t6
+	srl	$t6, $t6, 8
+	srl	$t4, $t4, 8
+	beq	$t4, $t6, FP_found_row
+	sll	$t6, $t6, 8
+	# Shifting byte and decimating it to 2B
+	sll	$t3, $t3, 1
+	and	$t3, $t3, 0xFFFF
+	# Increment counters
+	addiu	$t2, $t2, 1
+	addiu	$t8, $t8, 1
+	b	FP_byte
 
-rows:
-bge	$t1, $s1, return	#check end of image
-addiu 	$t1, $t1, 1		#increment counter of rows
-addiu 	$t2, $zero, 0		#t2 = counter of columns
-lb	$t4, ($t0)		#read byte of picture
-and	$t4, $t4, 0x000000ff	
-sll	$t4, $t4, 8		#transforming byte for easier comparison
-
-columns:
-bge	$t2, $s0, next_row	#check end of row
-lb	$t5, 1($t0)		#read next byte of picture
-and	$t5, $t5, 0x000000ff	
-or	$t4, $t4, $t5		#t4 = 2 bytes of picture
-addiu 	$t8, $zero, 0		#t8 = counter for byte
-
-byte:
-bge	$t8, 8, end_byte	#shifted 8 times
-bge	$t2, $s0, end_byte	#end of row check
-or	$t5, $t4, $t6		#oring with pattern
-srl	$t6, $t6, 8		#shifting to compare
-srl	$t5, $t5, 8		
-beq	$t5, $t6, pattern_row_found	#comparing
-sll	$t6, $t6, 8		#not found, shifting back
-sll	$t4, $t4, 1		#shifting bits of image to compare next byte
-and	$t4, $t4, 0x0000FFFF	#deleting msb
-addiu 	$t2, $t2, 1		#increment counter
-addiu 	$t8, $t8, 1
-j byte
-
-end_byte:
-addiu	$t0, $t0, 1		#go to next byte
-j columns
-
-next_row:
-sub	$s2, $s2, $s4		#going to next row
-move	$t0, $s2		#loading address of next row to t0
-j rows
-
-pattern_row_found:
+FP_found_row:
 addiu 	$t7, $t7, 1			#increment counter of pattern rows
-beq	$t7, $s3, pattern_found		#check if all pattern rows found
-beq	$t2, $s0, pic_end_check
+beq	$t7, $s2, pattern_found		#check if all pattern rows found
+beq	$t2, $s3, pic_end_check
 not_end:
-lb	$t5, 1($t0)			#loading next byte from next line
-and	$t5, $t5, 0x000000ff	
+lb	$t4, 1($t0)			#loading next byte from next line
+and	$t4, $t4, 0x000000ff	
 
 pic_end:
-sub	$t0, $t0, $s4			#moving to next line
+sub	$t0, $t0, $s5			#moving to next line
 lb	$t9, ($t0)			#loading byte from next line
 and	$t9, $t9, 0x000000FF
 sll	$t9, $t9, 8			#transforming for easier comparison
 
-or	$t5, $t5, $t9			#t5 contains 2 bytes from next line
+or	$t4, $t4, $t9			#t5 contains 2 bytes from next line
 move 	$s7, $t8			#s7 = counter of shifts to get to right position in next line
 
 shift:
 beqz	$s7, comp
-sll	$t5, $t5, 1			#shifting bytes to correct position
+sll	$t4, $t4, 1			#shifting bytes to correct position
 subiu	$s7, $s7, 1
 j shift
 
 comp:
-and	$t5, $t5, 0x0000ffff		#removing upper bytes
-addiu	$s6, $s6, 4			#incrementing pattern array
-lb	$t6, ($s6)			#loading next row of pattern
+and	$t4, $t4, 0x0000ffff		#removing upper bytes
+addiu	$a2, $a2, 4			#incrementing pattern array
+lb	$t6, ($a2)			#loading next row of pattern
 and	$t6, $t6, 0x000000FF		
 or	$t6, $t6, 0x00000001
 sll	$t6, $t6, 8			#transforming for easier comparison
-or	$t5, $t5, $t6			#oring with pattern
+or	$t4, $t4, $t6			#oring with pattern
 srl	$t6, $t6, 8			#shifting to compare
-srl	$t5, $t5, 8
-beq	$t5, $t6, pattern_row_found	#next row found
+srl	$t4, $t4, 8
+beq	$t4, $t6, FP_found_row	#next row found
 
 ret:
 beqz	$t7, load_pattern		
-sub	$s6, $s6, 4			#going to beginning of pattern array
-add 	$t0, $t0, $s4			#going back in lines
+sub	$a2, $a2, 4			#going to beginning of pattern array
+add 	$t0, $t0, $s5			#going back in lines
 subiu	$t7, $t7, 1
 j 	ret
 
 pattern_found:
-addiu 	$t3, $t3, 1			#incrementing counter of occurences
+addiu 	$v1, $v1, 1			#incrementing counter of occurences
 subiu	$t7, $t7, 1			
 sw	$t2, ($a3)			#storing coordinates of found pattern
 addiu	$a3, $a3, 4
@@ -143,30 +167,42 @@ addiu	$t1, $t1, 1
 j 	ret
 
 load_pattern:
-lb	$t6, ($s6)		#t6 = 1st line of pattern
+lb	$t6, ($a2)		#t6 = 1st line of pattern
 and	$t6, $t6, 0x000000FF
 or	$t6, $t6, 0x00000001
 sll	$t6, $t6, 8		#transforming
-sll	$t4, $t4, 5		#shifting image pixels,
-and	$t4, $t4, 0x0000FFFF	#deleting msb
+sll	$t3, $t3, 5		#shifting image pixels,
+and	$t3, $t3, 0x0000FFFF	#deleting msb
 addiu 	$t2, $t2, 5		#increment counter
 addiu 	$t8, $t8, 5
-j byte
+j FP_byte
 
 pic_end_check:
-bne	$t1, $s1, not_end
-beq 	$t1, $s1, pic_end
+bne	$t1, $s4, not_end
+beq 	$t1, $s4, pic_end
 
 return:
-move	$s0, $t3
+move	$s3, $v1
 set_ptr:
-blez	$s0, set_return		#resetting pointer to result
-addiu	$s0, $s0, -1
+blez	$s3, set_return		#p_resetting pointer to p_result
+addiu	$s3, $s3, -1
 addiu	$a3, $a3, -8
 j set_ptr
 
 set_return:
 move	$v0, $a3		#setting values to be returned
-move 	$v1, $t3
+move 	$v1, $v1
+	
+FP_end:
+#	Epilogue
+	lw	$s0, 0($sp)
+	lw	$s1, 8($sp)
+	lw	$s2, 16($sp)
+	lw	$s3, 24($sp)
+	lw	$s4, 32($sp)
+	lw	$s5, 40($sp)
+	lw	$s6, 48($sp)
+	addiu	$sp, $sp, 48
 
-jr $ra
+	# return fun
+	jr	$ra

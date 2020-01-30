@@ -1,37 +1,37 @@
 	.data
-xxxxxx: .space 1
-imgin:	.asciiz "src.bmp"
+xxxxx:	.space	2
+bmphdr:	.space	62
 
-yyyyyy:	.space 5
-bmphdr:	.space 62
-
-p_res:	.space 800
+imgin:	.asciiz	"src2.bmp"
 
 imgInfo:
-width:	.word 0
-height:	.word 0
-pImg:	.word 0
-fbsize:	.word 0
+width:	.word	0
+height:	.word	0
+pImg:	.word	0
+fbsize:	.word	0
+
+# Buffer for storing result (100 points = 100x2 words = 800)
+p_res:	.space	800
 
 # Pattern.
 # Size is 0xHHHHVVVV, where H is horizontal size, V is vertical size
 # small g
 p_size:	.word	0x00070008
-pttrn:	.word	0x80, 0x7a, 0x7a, 0x7a, 0x82, 0xfa, 0xfa, 0x86
+pttrn:	.word	0x40, 0x3d, 0x3d, 0x3d, 0x41, 0x7d, 0x7d, 0x43
 # other letter
 #
 #
 
 	.text
-	.globl main
+#	.globl	main
 main:
 	
 #	Print pattern
 	la	$a0, pttrn
 	la	$t0, p_size
 	lw	$a1, ($t0)
-	jal	PrintPattern
-
+	#jal	PrintPattern
+	
 #	Read BMP
 	li	$v0, 13
 	la	$a0, imgin
@@ -119,7 +119,7 @@ height_positive:
 	move	$t1, $s1
 PointLoop:
 	move	$a0, $t0
-	jal	PrintPoint
+	#jal	PrintPoint
 	addiu	$t0, $t0, 8
 	addiu	$t1, $t1, -1
 	bnez	$t1, PointLoop

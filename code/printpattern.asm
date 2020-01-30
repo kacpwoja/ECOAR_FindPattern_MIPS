@@ -8,7 +8,7 @@
 PrintPattern:
 #	for (i=0; i < 8; ++i)
 #         {
-#                 for (mask=0x40; mask != 0; mask >>= 1)
+#                 for (mask=0x80; mask != 0; mask >>= 1)
 #                         printf("%c", (pattern[i] & mask) ? ' ' : '*');
 #                 printf("\n");
 #         }
@@ -35,7 +35,6 @@ PrintPfor_shift:
 	sll	$s2, $s2, 1
 	addiu	$t0, $t0, -1
 	bnez	$t0, PrintPfor_shift
-	srl	$s2, $s2, 1
 	
 	
 #	Body
@@ -52,7 +51,7 @@ PrintPout_back:
 	syscall
 #	iterate for mask
 	srl	$t1, $t1, 1
-	bnez	$t1, PrintPfor_mask
+	bgtu	$t1, 1, PrintPfor_mask
 #	iterate for i
 	la	$a0, 0xA
 	li	$v0, 0xB
